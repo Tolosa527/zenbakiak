@@ -2,9 +2,11 @@ import { describe, expect, it } from 'vitest'
 import { BASQUE_NUMBERS, getBasqueNumber } from '../data/numbers.js'
 import {
   checkExercise,
+  completeTask,
   createExercise,
   createPlacementExercise,
   getCurrentUnit,
+  getNextTaskIndex,
   getPlacementStartUnit,
   normalizePhrase,
   UNITS,
@@ -68,5 +70,47 @@ describe('lesson exercises', () => {
     expect(getPlacementStartUnit(UNITS.length)).toBe(UNITS.length - 1)
     expect(getCurrentUnit([0, 1])).toBe(2)
     expect(getCurrentUnit(UNITS.map((_, index) => index))).toBe(-1)
+  })
+
+  it('unlocks one unit task at a time', () => {
+    expect(getNextTaskIndex([])).toBe(0)
+    expect(getNextTaskIndex([0, 1, 2])).toBe(3)
+    expect(getNextTaskIndex([0, 1, 2, 3, 4])).toBe(-1)
+  })
+
+  it('completes a unit in order and awards XP only once per task', () => {
+    let progress = {
+      completedUnitIndexes: [],
+      completedTaskIndexesByUnit: UNITS.map(() => []),
+      xp: 0,
+    }
+
+    for (let taskIndex = 0; taskIndex < 4; taskIndex += 1) {
+      const completion = completeTask(progress, 0, taskIndex)
+      expect(completion.unitComplete).toBe(false)
+      expect(completion.xpEarned).toBe(10)
+      progress = completion.progress
+    }
+
+    const finalCompletion = completeTask(progress, 0, 4)
+    expect(finalCompletion.unitComplete).toBe(true)
+    expect(finalCompletion.progress.completedUnitIndexes).toEqual([0])
+    expect(finalCompletion.progress.xp).toBe(50)
+    expect(getCurrentUnit(finalCompletion.progress.completedUnitIndexes)).toBe(1)
+
+    const replay = completeTask(finalCompletion.progress, 0, 2)
+    expect(replay.xpEarned).toBe(0)
+    expect(replay.progress.xp).toBe(50)
+  })
+
+  it('rejects skipping a locked task', () => {
+    const progress = {
+      completedUnitIndexes: [],
+      completedTaskIndexesByUnit: UNITS.map(() => []),
+      xp: 0,
+    }
+
+    expect(() => completeTask(progress, 0, 1)).toThrow(RangeError)
+    expect(() => completeTask(progress, 1, 0)).toThrow(RangeError)
   })
 })

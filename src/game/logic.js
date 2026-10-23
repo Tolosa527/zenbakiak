@@ -135,3 +135,51 @@ export function getPlacementStartUnit(correctAnswers) {
 export function getCurrentUnit(completedUnitIndexes) {
   return UNITS.findIndex((_, index) => !completedUnitIndexes.includes(index))
 }
+
+export function getNextTaskIndex(completedTaskIndexes) {
+  const completedTasks = new Set(completedTaskIndexes)
+  return Array.from({ length: LESSON_LENGTH }, (_, index) => index)
+    .findIndex((index) => !completedTasks.has(index))
+}
+
+export function completeTask(progress, unitIndex, taskIndex) {
+  const completedTasks = progress.completedTaskIndexesByUnit[unitIndex]
+  if (
+    !UNITS[unitIndex] ||
+    !Array.isArray(completedTasks) ||
+    !Number.isInteger(taskIndex) ||
+    taskIndex < 0 ||
+    taskIndex >= LESSON_LENGTH
+  ) {
+    throw new RangeError('UNITeko urratsa ez da baliozkoa.')
+  }
+
+  if (
+    !progress.completedUnitIndexes.includes(unitIndex) &&
+    getCurrentUnit(progress.completedUnitIndexes) !== unitIndex
+  ) {
+    throw new RangeError('Aurreko UNITa osatu behar da.')
+  }
+
+  const alreadyCompleted = completedTasks.includes(taskIndex)
+  if (!alreadyCompleted && taskIndex > getNextTaskIndex(completedTasks)) {
+    throw new RangeError('Aurreko urratsak osatu behar dira.')
+  }
+
+  const nextCompletedTasks = [...new Set([...completedTasks, taskIndex])].sort((a, b) => a - b)
+  const unitComplete = nextCompletedTasks.length === LESSON_LENGTH
+  const xpEarned = alreadyCompleted ? 0 : 10
+  return {
+    progress: {
+      ...progress,
+      completedTaskIndexesByUnit: progress.completedTaskIndexesByUnit.map((tasks, index) =>
+        index === unitIndex ? nextCompletedTasks : tasks),
+      completedUnitIndexes: unitComplete
+        ? [...new Set([...progress.completedUnitIndexes, unitIndex])].sort((a, b) => a - b)
+        : progress.completedUnitIndexes,
+      xp: progress.xp + xpEarned,
+    },
+    unitComplete,
+    xpEarned,
+  }
+}

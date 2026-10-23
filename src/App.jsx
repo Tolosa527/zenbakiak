@@ -1,9 +1,11 @@
 import { useEffect, useState } from 'react'
 import {
   checkExercise,
+  completeTask,
   createExercise,
   createPlacementExercise,
   getCurrentUnit,
+  getNextTaskIndex,
   getPlacementStartUnit,
   LESSON_LENGTH,
   UNITS,
@@ -28,28 +30,23 @@ function Header({ progress, onGoHome }) {
 
 function LandscapePlaceholder({ scene, label }) {
   return (
-    <div className={`landscape-placeholder scene-${scene}`} role="img" aria-label={`${label} paisaiaren irudia hemen`}>
-      <span className="scene-sun" aria-hidden="true" />
-      <span className="scene-hill scene-hill-back" aria-hidden="true" />
-      <span className="scene-hill scene-hill-front" aria-hidden="true" />
-      <span className="scene-label">Paisaiaren irudia hemen</span>
+    <div className={`landscape-placeholder scene-${scene}`} role="img" aria-label={`${label} paisaiaren ilustrazioa`}>
+      <span className="scene-label">{label}</span>
     </div>
   )
 }
 
 function CharacterPlaceholder() {
   return (
-    <div className="character-placeholder" role="img" aria-label="Pertsonaiaren irudia hemen">
-      <span className="character-head" aria-hidden="true" />
-      <span className="character-body" aria-hidden="true" />
-      <span className="character-placeholder-label">Pertsonaia hemen</span>
+    <div className="character-placeholder">
+      <img className="character-image" src="/img/front.png" alt="Ardi pertsonaia" />
     </div>
   )
 }
 
 function HomeScreen({ progress, onStartAssessment, onGoToPath }) {
   const currentUnitIndex = getCurrentUnit(progress.completedUnitIndexes)
-  const hasProgress = progress.completedUnitIndexes.length > 0
+  const hasProgress = progress.xp > 0 || progress.completedTaskIndexesByUnit.some((tasks) => tasks.length > 0)
 
   return (
     <main className="page-shell home-screen">
@@ -261,7 +258,7 @@ function PathScreen({ progress, onStartLesson }) {
         <div>
           <p className="eyebrow">ZURE IKASKUNTZA-BIDEA</p>
           <h1>Paisaiaz paisaia, zenbakiz zenbaki</h1>
-          <p className="muted-copy">Egin ikasgaiak eta ireki Euskal Herriko hurrengo geltokia.</p>
+          <p className="muted-copy">Osatu UNIT bakoitzeko urratsak eta desblokeatu hurrengo geltokia.</p>
         </div>
         <span className="stat-pill"><span aria-hidden="true">✦</span> {progress.xp} XP</span>
       </div>
@@ -278,8 +275,11 @@ function PathScreen({ progress, onStartLesson }) {
           const completed = progress.completedUnitIndexes.includes(index)
           const locked = !completed && !allComplete && index > currentUnitIndex
           const active = !completed && !locked
+          const completedTasks = progress.completedTaskIndexesByUnit[index]
+          const nextTaskIndex = getNextTaskIndex(completedTasks)
+          const unitComplete = completed || nextTaskIndex === -1
           return (
-            <article className={`path-stop ${active ? 'is-active' : ''} ${completed ? 'is-complete' : ''} ${locked ? 'is-locked' : ''}`} key={unit.id}>
+            <article className={`path-stop scene-${unit.scene} ${active ? 'is-active' : ''} ${completed ? 'is-complete' : ''} ${locked ? 'is-locked' : ''}`} key={unit.id}>
               <div className="path-node-column" aria-hidden="true">
                 <span className="path-node">{completed ? '✓' : locked ? '· · ·' : index + 1}</span>
                 {index < UNITS.length - 1 && <span className="path-connector" />}
@@ -293,18 +293,32 @@ function PathScreen({ progress, onStartLesson }) {
                       <h2>{unit.title}</h2>
                     </div>
                     <span className={`status-badge ${completed ? 'badge-complete' : locked ? 'badge-locked' : 'badge-current'}`}>
-                      {completed ? 'OSATUTA' : locked ? 'ITXITA' : 'ZURE TXANDA'}
+                      {unitComplete ? 'OSATUTA' : locked ? 'ITXITA' : 'ZURE TXANDA'}
                     </span>
                   </div>
-                  <p className="muted-copy">{unit.description} · 5 ariketa</p>
-                  <button
-                    className={`button ${active || allComplete ? 'button-primary' : 'button-secondary'}`}
-                    type="button"
-                    disabled={locked}
-                    onClick={() => onStartLesson(index)}
-                  >
-                    {completed ? 'Errepikatu' : locked ? 'Giltzatuta' : 'Ikasgaia hasi'}
-                  </button>
+                  <p className="muted-copy">{unit.description} · {completedTasks.length}/{LESSON_LENGTH} urrats</p>
+                  <div className="unit-task-path" role="group" aria-label={`${unit.title} UNITeko jarduera-bidea`}>
+                    {Array.from({ length: LESSON_LENGTH }, (_, taskIndex) => {
+                      const taskComplete = completedTasks.includes(taskIndex)
+                      const taskActive = !locked && !unitComplete && taskIndex === nextTaskIndex
+                      const taskLocked = locked || (!unitComplete && taskIndex > nextTaskIndex)
+                      return (
+                        <div className="task-node-wrap" key={taskIndex}>
+                          <button
+                            className={`task-node ${taskComplete ? 'is-complete' : ''} ${taskActive ? 'is-active' : ''}`}
+                            type="button"
+                            aria-label={`${taskIndex + 1}. urratsa${taskComplete ? ', osatuta' : taskActive ? ', hasi' : ', blokeatuta'}`}
+                            aria-current={taskActive ? 'step' : undefined}
+                            disabled={taskLocked}
+                            onClick={() => onStartLesson(index, taskIndex)}
+                          >
+                            {taskComplete ? '✓' : taskIndex + 1}
+                          </button>
+                          {taskActive && <img className="task-node-sheep" src="/img/front.png" alt="" aria-hidden="true" />}
+                        </div>
+                      )
+                    })}
+                  </div>
                 </div>
               </div>
             </article>
@@ -320,7 +334,7 @@ function PlacementResult({ startUnit, correctAnswers, onChoose, onBack }) {
   return (
     <main className="page-shell centered-screen">
       <section className="result-card panel">
-        <div className="result-icon" aria-hidden="true">🌟</div>
+        <div className="result-icon"><img src="/img/front.png" alt="" /></div>
         <p className="eyebrow">MAILA-PROBA AMAITUTA</p>
         <h1>{correctAnswers} / {UNITS.length} erantzun zuzen</h1>
         <p className="result-copy">
@@ -341,18 +355,23 @@ function PlacementResult({ startUnit, correctAnswers, onChoose, onBack }) {
   )
 }
 
-function LessonComplete({ unit, correctCount, onContinue }) {
+function TaskComplete({ unit, taskIndex, unitComplete, allUnitsComplete, xpEarned, onContinue }) {
   return (
     <main className="page-shell centered-screen">
       <section className="result-card panel">
-        <div className="result-icon" aria-hidden="true">🏅</div>
-        <p className="eyebrow">IKASGAIA OSATUTA</p>
-        <h1>Primeran, {unit.title} amaitu duzu!</h1>
+        <div className="result-icon"><img src="/img/front.png" alt="" /></div>
+        <p className="eyebrow">{allUnitsComplete ? 'BIDEA OSATUTA' : unitComplete ? 'UNITA OSATUTA' : 'URRATSA OSATUTA'}</p>
+        <h1>{unitComplete ? `Primeran, ${unit.title} amaitu duzu!` : `${taskIndex + 1}. urratsa osatuta!`}</h1>
         <p className="result-copy">
-          {correctCount} erantzun zuzen · +{correctCount * 10} XP. Hurrengo geltokia prest dago!
+          {xpEarned > 0 && `+${xpEarned} XP. `}
+          {allUnitsComplete
+            ? 'Zenbaki-bide osoa osatu duzu!'
+            : unitComplete
+              ? 'Hurrengo UNITa desblokeatu da!'
+              : 'Bideko hurrengo urratsa zabaldu da!'}
         </p>
         <button className="button button-primary button-large" type="button" onClick={onContinue}>
-          Bidean jarraitu
+          Bidera itzuli
         </button>
       </section>
     </main>
@@ -370,8 +389,8 @@ export default function App() {
   const [placementStartUnit, setPlacementStartUnit] = useState(0)
   const [lessonUnitIndex, setLessonUnitIndex] = useState(0)
   const [lessonStep, setLessonStep] = useState(0)
-  const [lessonScore, setLessonScore] = useState(0)
   const [lessonExercise, setLessonExercise] = useState(null)
+  const [taskCompletion, setTaskCompletion] = useState(null)
 
   useEffect(() => {
     setStorageError(saveProgress(progress))
@@ -411,15 +430,16 @@ export default function App() {
     setProgress((current) => ({
       ...current,
       completedUnitIndexes: [...new Set([...current.completedUnitIndexes, ...knownUnits])].sort((a, b) => a - b),
+      completedTaskIndexesByUnit: current.completedTaskIndexesByUnit.map((tasks, index) =>
+        knownUnits.includes(index) ? Array.from({ length: LESSON_LENGTH }, (_, taskIndex) => taskIndex) : tasks),
     }))
     setScreen('path')
   }
 
-  function startLesson(unitIndex) {
+  function startLesson(unitIndex, taskIndex) {
     setLessonUnitIndex(unitIndex)
-    setLessonStep(0)
-    setLessonScore(0)
-    setLessonExercise(createExercise(unitIndex, 0))
+    setLessonStep(taskIndex)
+    setLessonExercise(createExercise(unitIndex, taskIndex))
     setScreen('lesson')
   }
 
@@ -428,21 +448,15 @@ export default function App() {
       return
     }
 
-    const nextScore = lessonScore + 1
-    const nextStep = lessonStep + 1
-    setLessonScore(nextScore)
-    if (nextStep >= LESSON_LENGTH) {
-      setProgress((current) => ({
-        ...current,
-        completedUnitIndexes: [...new Set([...current.completedUnitIndexes, lessonUnitIndex])].sort((a, b) => a - b),
-        xp: current.xp + nextScore * 10,
-      }))
-      setScreen('lesson-complete')
-      return
-    }
-
-    setLessonStep(nextStep)
-    setLessonExercise(createExercise(lessonUnitIndex, nextStep))
+    const completion = completeTask(progress, lessonUnitIndex, lessonStep)
+    setProgress(completion.progress)
+    setTaskCompletion({
+      taskIndex: lessonStep,
+      unitComplete: completion.unitComplete,
+      allUnitsComplete: completion.unitComplete && lessonUnitIndex === UNITS.length - 1,
+      xpEarned: completion.xpEarned,
+    })
+    setScreen('task-complete')
   }
 
   return (
@@ -491,10 +505,10 @@ export default function App() {
           />
         </main>
       )}
-      {screen === 'lesson-complete' && (
-        <LessonComplete
+      {screen === 'task-complete' && taskCompletion && (
+        <TaskComplete
           unit={UNITS[lessonUnitIndex]}
-          correctCount={lessonScore}
+          {...taskCompletion}
           onContinue={() => setScreen('path')}
         />
       )}
