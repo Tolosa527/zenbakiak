@@ -234,19 +234,42 @@ p {
   transform: rotate(2deg);
 }
 
+.hero-art .hero-landscape {
+  position: absolute;
+  inset: 16px 0;
+  width: 100%;
+  height: calc(100% - 32px);
+  object-fit: cover;
+  border-radius: 48% 52% 40% 60% / 40% 43% 57% 60%;
+  transform: rotate(2deg);
+  opacity: 0.4;
+}
+
+.hero-art {
+  min-height: 340px;
+}
+
 .character-placeholder {
+  position: absolute;
+  bottom: 34px;
+  left: 50%;
   z-index: 1;
-  width: 146px;
-  height: 192px;
+  width: 200px;
+  height: 330px;
   display: flex;
-  align-items: flex-end;
+  align-items: flex-start;
   justify-content: center;
+  overflow: hidden;
+  transform: translateX(-50%);
+  -webkit-mask-image: linear-gradient(to bottom, #000 90%, transparent);
+  mask-image: linear-gradient(to bottom, #000 90%, transparent);
 }
 
 .character-image {
-  max-width: 100%;
-  max-height: 100%;
+  height: 440px;
+  max-width: none;
   object-fit: contain;
+  mix-blend-mode: normal;
 }
 
 .result-icon img {
@@ -331,7 +354,7 @@ p {
   background: rgba(255, 255, 255, 0.78);
 }
 
-.scene-coast {
+.landscape-placeholder.scene-coast {
   background: linear-gradient(180deg, #d9f2f3 0%, #eff8da 56%, #b7e0dd 57%, #a8d9d4 100%);
 }
 
@@ -343,7 +366,7 @@ p {
   background: #89c7c2;
 }
 
-.scene-forest {
+.landscape-placeholder.scene-forest {
   background: linear-gradient(180deg, #d9f1e9, #c9e7c5 67%, #acd49e);
 }
 
@@ -352,7 +375,7 @@ p {
   background: #91c69d;
 }
 
-.scene-village {
+.landscape-placeholder.scene-village {
   background: linear-gradient(180deg, #dceff0, #f6e6bd 65%, #c7dfb9);
 }
 
@@ -360,7 +383,7 @@ p {
   background: #b2cfa2;
 }
 
-.scene-stars {
+.landscape-placeholder.scene-stars {
   background: linear-gradient(180deg, #3c6182, #708cac 65%, #c1d9c1);
   color: #fff;
 }
@@ -631,14 +654,14 @@ p {
 }
 
 .path-list {
-  max-width: 850px;
+  max-width: 1100px;
   margin: 0 auto;
 }
 
 .path-stop {
   display: grid;
-  grid-template-columns: 60px minmax(0, 1fr);
-  gap: 16px;
+  grid-template-columns: 44px minmax(0, 1fr);
+  gap: 12px;
 }
 
 .path-node-column {
@@ -649,8 +672,8 @@ p {
 
 .path-node {
   z-index: 1;
-  width: 50px;
-  height: 50px;
+  width: 38px;
+  height: 38px;
   display: grid;
   place-items: center;
   border: 3px solid var(--unit-border, #cbdad2);
@@ -676,18 +699,23 @@ p {
 .path-connector {
   width: 4px;
   flex: 1;
-  min-height: 24px;
+  min-height: 14px;
   background: var(--unit-border, #d7e7de);
 }
 
 .path-stop-card {
   display: grid;
-  grid-template-columns: 195px minmax(0, 1fr);
-  gap: 18px;
-  margin-bottom: 22px;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 12px;
+  width: 100%;
+  max-width: 850px;
+  margin: 0 auto 12px;
   border-color: var(--unit-border, var(--color-border));
-  padding: 16px;
-  background-color: var(--unit-surface, var(--color-surface));
+  padding: 10px;
+  background-color: color-mix(in srgb, var(--unit-surface, var(--color-surface)) 55%, transparent);
+  background-position: center;
+  background-repeat: no-repeat;
+  background-size: cover;
   transition: transform 180ms ease;
 }
 
@@ -696,7 +724,7 @@ p {
 }
 
 .path-stop-card .landscape-placeholder {
-  min-height: 158px;
+  min-height: 110px;
   border: 0;
   background-position: center;
   background-repeat: no-repeat;
@@ -710,7 +738,7 @@ p {
   flex-direction: column;
   align-items: flex-start;
   justify-content: center;
-  padding: 5px 4px;
+  padding: 2px 4px;
 }
 
 .path-stop-heading {
@@ -722,22 +750,23 @@ p {
 }
 
 .path-stop-heading .eyebrow {
-  margin-bottom: 5px;
+  margin-bottom: 3px;
   font-size: 0.65rem;
   color: var(--unit-accent-dark, var(--color-accent));
 }
 
 .path-stop-heading h2 {
-  margin-bottom: 4px;
-  font-size: 1.35rem;
+  margin-bottom: 2px;
+  font-size: 1.15rem;
   font-weight: 900;
 }
 
 .path-stop-content .button {
-  margin-top: 15px;
+  margin-top: 8px;
 }
 
-.path-stop.scene-mountain {
+.path-stop.scene-mountain,
+.lesson-screen.scene-mountain {
   --unit-accent: #4f965e;
   --unit-accent-dark: #315f40;
   --unit-soft: #e6f2d9;
@@ -746,7 +775,8 @@ p {
   --unit-muted: #64785c;
 }
 
-.path-stop.scene-coast {
+.path-stop.scene-coast,
+.lesson-screen.scene-coast {
   --unit-accent: #1686a7;
   --unit-accent-dark: #145b76;
   --unit-soft: #dff3f4;
@@ -755,7 +785,8 @@ p {
   --unit-muted: #567b84;
 }
 
-.path-stop.scene-forest {
+.path-stop.scene-forest,
+.lesson-screen.scene-forest {
   --unit-accent: #287447;
   --unit-accent-dark: #174f34;
   --unit-soft: #e0f0dc;
@@ -764,7 +795,8 @@ p {
   --unit-muted: #55725a;
 }
 
-.path-stop.scene-village {
+.path-stop.scene-village,
+.lesson-screen.scene-village {
   --unit-accent: #b85e43;
   --unit-accent-dark: #7a3e32;
   --unit-soft: #f8e7d7;
@@ -773,7 +805,8 @@ p {
   --unit-muted: #816b59;
 }
 
-.path-stop.scene-stars {
+.path-stop.scene-stars,
+.lesson-screen.scene-stars {
   --unit-accent: #536eaa;
   --unit-accent-dark: #354a7c;
   --unit-soft: #e6eafb;
@@ -782,24 +815,24 @@ p {
   --unit-muted: #616f91;
 }
 
-.path-stop.scene-mountain .landscape-placeholder {
-  background-image: url('/img/scenes/mountain.svg');
+.path-stop.scene-mountain .path-stop-card {
+  background-image: linear-gradient(color-mix(in srgb, var(--unit-surface) 45%, transparent), color-mix(in srgb, var(--unit-surface) 45%, transparent)), url('/img/scenes/mountain.jpeg');
 }
 
-.path-stop.scene-coast .landscape-placeholder {
-  background-image: url('/img/scenes/coast.svg');
+.path-stop.scene-coast .path-stop-card {
+  background-image: linear-gradient(color-mix(in srgb, var(--unit-surface) 45%, transparent), color-mix(in srgb, var(--unit-surface) 45%, transparent)), url('/img/scenes/coast.jpeg');
 }
 
-.path-stop.scene-forest .landscape-placeholder {
-  background-image: url('/img/scenes/forest.svg');
+.path-stop.scene-forest .path-stop-card {
+  background-image: linear-gradient(color-mix(in srgb, var(--unit-surface) 45%, transparent), color-mix(in srgb, var(--unit-surface) 45%, transparent)), url('/img/scenes/forest.jpeg');
 }
 
-.path-stop.scene-village .landscape-placeholder {
-  background-image: url('/img/scenes/village.svg');
+.path-stop.scene-village .path-stop-card {
+  background-image: linear-gradient(color-mix(in srgb, var(--unit-surface) 45%, transparent), color-mix(in srgb, var(--unit-surface) 45%, transparent)), url('/img/scenes/village.svg');
 }
 
-.path-stop.scene-stars .landscape-placeholder {
-  background-image: url('/img/scenes/stars.svg');
+.path-stop.scene-stars .path-stop-card {
+  background-image: linear-gradient(color-mix(in srgb, var(--unit-surface) 45%, transparent), color-mix(in srgb, var(--unit-surface) 45%, transparent)), url('/img/scenes/stars.svg');
 }
 
 .path-stop .badge-current {
@@ -847,13 +880,13 @@ p {
   display: flex;
   flex-direction: column;
   align-items: center;
-  margin: 10px auto 0;
+  margin: 6px auto 0;
 }
 
 .unit-task-path::before {
   position: absolute;
-  top: 26px;
-  bottom: 26px;
+  top: 22px;
+  bottom: 22px;
   left: 50%;
   border-left: 3px dashed #cbdad2;
   content: '';
@@ -863,7 +896,7 @@ p {
   position: relative;
   z-index: 1;
   width: 100%;
-  min-height: 72px;
+  min-height: 58px;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -921,11 +954,16 @@ p {
   color: #087a3d;
 }
 
+.task-node-wrap:has(.task-node-sheep) {
+  z-index: 20;
+}
+
 .task-node-sheep {
   position: absolute;
-  left: calc(50% + 31px);
-  width: 44px;
-  height: 54px;
+  z-index: 1;
+  left: calc(50% + 61px);
+  width: 100px;
+  height: 175px;
   object-fit: contain;
   pointer-events: none;
 }
@@ -1032,15 +1070,11 @@ p {
   }
 
   .hero-art {
-    min-height: 250px;
-  }
-
-  .character-placeholder {
-    transform: scale(0.88);
+    min-height: 320px;
   }
 
   .path-stop-card {
-    grid-template-columns: 155px minmax(0, 1fr);
+    grid-template-columns: minmax(0, 1fr);
   }
 }
 
@@ -1074,17 +1108,13 @@ p {
   }
 
   .hero-art {
-    min-height: 230px;
+    min-height: 320px;
+    margin-top: 56px;
   }
 
-  .hero-art .landscape-placeholder {
-    inset: 4px 4%;
-  }
-
-  .character-placeholder {
-    width: 130px;
-    height: 176px;
-    transform: scale(0.9);
+  .hero-art .hero-landscape {
+    inset: 16px 4%;
+    width: 92%;
   }
 
   .home-feature-grid {
@@ -1103,25 +1133,25 @@ p {
   }
 
   .path-stop {
-    grid-template-columns: 39px minmax(0, 1fr);
-    gap: 10px;
+    grid-template-columns: 32px minmax(0, 1fr);
+    gap: 8px;
   }
 
   .path-node {
-    width: 38px;
-    height: 38px;
+    width: 30px;
+    height: 30px;
     border-width: 2px;
-    font-size: 0.85rem;
+    font-size: 0.75rem;
   }
 
   .path-stop-card {
     grid-template-columns: 1fr;
-    gap: 12px;
-    padding: 12px;
+    gap: 8px;
+    padding: 8px;
   }
 
   .path-stop-card .landscape-placeholder {
-    min-height: 125px;
+    min-height: 85px;
   }
 
   .path-stop-heading {
@@ -1130,7 +1160,7 @@ p {
   }
 
   .path-stop-heading h2 {
-    font-size: 1.2rem;
+    font-size: 1.05rem;
   }
 
   .path-stop-content .button {
@@ -1167,4 +1197,59 @@ p {
     scroll-behavior: auto !important;
     transition-duration: 1ms !important;
   }
+}
+
+.lesson-screen {
+  min-height: calc(100vh - 140px);
+  justify-content: flex-start;
+  gap: 0;
+  border-radius: 28px;
+  padding: 18px 18px 28px;
+  background-color: var(--unit-surface);
+  background-position: center bottom;
+  background-size: cover;
+}
+
+.lesson-screen.scene-mountain { background-image: linear-gradient(color-mix(in srgb, var(--unit-surface) 55%, transparent), color-mix(in srgb, var(--unit-surface) 55%, transparent)), url('/img/scenes/mountain.jpeg'); }
+.lesson-screen.scene-coast { background-image: linear-gradient(color-mix(in srgb, var(--unit-surface) 55%, transparent), color-mix(in srgb, var(--unit-surface) 55%, transparent)), url('/img/scenes/coast.jpeg'); }
+.lesson-screen.scene-forest { background-image: linear-gradient(color-mix(in srgb, var(--unit-surface) 55%, transparent), color-mix(in srgb, var(--unit-surface) 55%, transparent)), url('/img/scenes/forest.jpeg'); }
+.lesson-screen.scene-village { background-image: linear-gradient(color-mix(in srgb, var(--unit-surface) 55%, transparent), color-mix(in srgb, var(--unit-surface) 55%, transparent)), url('/img/scenes/village.svg'); }
+.lesson-screen.scene-stars { background-image: linear-gradient(color-mix(in srgb, var(--unit-surface) 55%, transparent), color-mix(in srgb, var(--unit-surface) 55%, transparent)), url('/img/scenes/stars.svg'); }
+
+.lesson-screen .back-button {
+  margin-bottom: 4px;
+  color: var(--unit-accent-dark);
+}
+
+.lesson-screen .exercise-card {
+  border-color: var(--unit-border);
+  background: color-mix(in srgb, var(--unit-surface) 94%, white);
+}
+
+.lesson-screen .eyebrow,
+.lesson-screen .exercise-card h1 {
+  color: var(--unit-accent-dark);
+}
+
+.lesson-screen .progress-fill,
+.lesson-screen .button-primary {
+  background: var(--unit-accent);
+}
+
+.lesson-screen .button-primary {
+  box-shadow: 0 4px 0 var(--unit-accent-dark);
+}
+
+.task-node-sheep,
+.character-image,
+.result-icon img {
+  mix-blend-mode: multiply;
+}
+
+@media (max-width: 640px) {
+  .lesson-screen {
+    padding: 12px 10px 20px;
+    border-radius: 20px;
+  }
+
 }

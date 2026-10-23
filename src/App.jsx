@@ -28,18 +28,10 @@ function Header({ progress, onGoHome }) {
   )
 }
 
-function LandscapePlaceholder({ scene, label }) {
-  return (
-    <div className={`landscape-placeholder scene-${scene}`} role="img" aria-label={`${label} paisaiaren ilustrazioa`}>
-      <span className="scene-label">{label}</span>
-    </div>
-  )
-}
-
 function CharacterPlaceholder() {
   return (
     <div className="character-placeholder">
-      <img className="character-image" src="/img/front.png" alt="Ardi pertsonaia" />
+      <img className="character-image" src="/img/front.webp" alt="Ardi pertsonaia" />
     </div>
   )
 }
@@ -72,7 +64,7 @@ function HomeScreen({ progress, onStartAssessment, onGoToPath }) {
           </p>
         </div>
         <div className="hero-art">
-          <LandscapePlaceholder scene="mountain" label="Mendiko bidea" />
+          <img className="hero-landscape" src="/img/scenes/coast.jpeg" alt="Kostaldeko paisaia" />
           <CharacterPlaceholder />
           <div className="hero-number-bubble" aria-hidden="true">1 · 2 · 3</div>
         </div>
@@ -260,7 +252,6 @@ function PathScreen({ progress, onStartLesson }) {
           <h1>Paisaiaz paisaia, zenbakiz zenbaki</h1>
           <p className="muted-copy">Osatu UNIT bakoitzeko urratsak eta desblokeatu hurrengo geltokia.</p>
         </div>
-        <span className="stat-pill"><span aria-hidden="true">✦</span> {progress.xp} XP</span>
       </div>
 
       {allComplete && (
@@ -285,7 +276,6 @@ function PathScreen({ progress, onStartLesson }) {
                 {index < UNITS.length - 1 && <span className="path-connector" />}
               </div>
               <div className="path-stop-card panel">
-                <LandscapePlaceholder scene={unit.scene} label={unit.place} />
                 <div className="path-stop-content">
                   <div className="path-stop-heading">
                     <div>
@@ -494,7 +484,7 @@ export default function App() {
       )}
       {screen === 'path' && <PathScreen progress={progress} onStartLesson={startLesson} />}
       {screen === 'lesson' && lessonExercise && (
-        <main className="page-shell centered-screen">
+        <main className={`page-shell centered-screen lesson-screen scene-${UNITS[lessonUnitIndex].scene}`}>
           <button className="back-button" type="button" onClick={() => setScreen('path')}>← Bidera itzuli</button>
           <ExerciseCard
             exercise={lessonExercise}
