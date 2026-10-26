@@ -48,7 +48,9 @@ export const UNITS = [
   },
 ]
 
-export const LESSON_LENGTH = 5
+export const TASKS_PER_UNIT = 10
+export const LESSONS_PER_TASK = 5
+const WORD_DISTRACTOR_COUNT = 4
 
 export function normalizePhrase(phrase) {
   return phrase
@@ -87,6 +89,49 @@ function getNumberOptions(target, min, max, random) {
   return shuffle([...options], random)
 }
 
+function getWordBlockOptions(target, min, max, random) {
+  const targetBlocks = getWordBlocks(target)
+  const usedTexts = new Set(targetBlocks.map((block) => block.text))
+  const distractorBlocks = []
+  let attempts = 0
+
+  while (distractorBlocks.length < WORD_DISTRACTOR_COUNT && attempts < 24) {
+    const candidate = randomInteger(min, max, random)
+    attempts += 1
+    if (candidate === target) {
+      continue
+    }
+
+    getWordBlocks(candidate).forEach((block) => {
+      if (distractorBlocks.length < WORD_DISTRACTOR_COUNT && !usedTexts.has(block.text)) {
+        usedTexts.add(block.text)
+        distractorBlocks.push({
+          ...block,
+          id: `distractor-${candidate}-${block.id}`,
+        })
+      }
+    })
+  }
+
+  for (let candidate = min; distractorBlocks.length < WORD_DISTRACTOR_COUNT && candidate <= max; candidate += 1) {
+    if (candidate === target) {
+      continue
+    }
+
+    getWordBlocks(candidate).forEach((block) => {
+      if (distractorBlocks.length < WORD_DISTRACTOR_COUNT && !usedTexts.has(block.text)) {
+        usedTexts.add(block.text)
+        distractorBlocks.push({
+          ...block,
+          id: `distractor-${candidate}-${block.id}`,
+        })
+      }
+    })
+  }
+
+  return shuffle([...targetBlocks, ...distractorBlocks], random)
+}
+
 export function createExercise(unitIndex, questionIndex, random = Math.random) {
   const unit = UNITS[unitIndex]
   if (!unit) {
@@ -102,7 +147,7 @@ export function createExercise(unitIndex, questionIndex, random = Math.random) {
       type,
       number,
       word,
-      blocks: shuffle(getWordBlocks(number), random),
+      blocks: getWordBlockOptions(number, unit.min, unit.max, random),
     }
   }
 
@@ -118,7 +163,11 @@ export function createPlacementExercise(unitIndex, random = Math.random) {
   const exercise = createExercise(unitIndex, unitIndex, random)
   return exercise.type === 'build-word'
     ? { ...exercise, type: 'choose-number', options: getNumberOptions(exercise.number, UNITS[unitIndex].min, UNITS[unitIndex].max, random) }
-    : { ...exercise, type: 'build-word', blocks: shuffle(getWordBlocks(exercise.number), random) }
+    : {
+      ...exercise,
+      type: 'build-word',
+      blocks: getWordBlockOptions(exercise.number, UNITS[unitIndex].min, UNITS[unitIndex].max, random),
+    }
 }
 
 export function checkExercise(exercise, answer) {
@@ -138,7 +187,7 @@ export function getCurrentUnit(completedUnitIndexes) {
 
 export function getNextTaskIndex(completedTaskIndexes) {
   const completedTasks = new Set(completedTaskIndexes)
-  return Array.from({ length: LESSON_LENGTH }, (_, index) => index)
+  return Array.from({ length: TASKS_PER_UNIT }, (_, index) => index)
     .findIndex((index) => !completedTasks.has(index))
 }
 
@@ -149,7 +198,7 @@ export function completeTask(progress, unitIndex, taskIndex) {
     !Array.isArray(completedTasks) ||
     !Number.isInteger(taskIndex) ||
     taskIndex < 0 ||
-    taskIndex >= LESSON_LENGTH
+    taskIndex >= TASKS_PER_UNIT
   ) {
     throw new RangeError('UNITeko urratsa ez da baliozkoa.')
   }
@@ -167,7 +216,7 @@ export function completeTask(progress, unitIndex, taskIndex) {
   }
 
   const nextCompletedTasks = [...new Set([...completedTasks, taskIndex])].sort((a, b) => a - b)
-  const unitComplete = nextCompletedTasks.length === LESSON_LENGTH
+  const unitComplete = nextCompletedTasks.length === TASKS_PER_UNIT
   const xpEarned = alreadyCompleted ? 0 : 10
   return {
     progress: {

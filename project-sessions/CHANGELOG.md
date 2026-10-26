@@ -12,4 +12,5 @@ Changes that affect the learner experience are recorded here as features are imp
 - Added tests for the complete number range and core exercise/placement logic.
 - Upgraded Vite, Vitest, and the React Vite plugin to audited versions; `npm audit` now reports no vulnerabilities.
 - Added shared session notes in `project-sessions/PROJECT-STATUS.md`.
-- Added the sheep character image (`public/img/front.png`) to the home hero and the placement/lesson result screens.
+- Added the sheep character image (`public/img/main_character.gif`) to the home hero and the placement/lesson result screens.
+- Restructured each UNIT into 10 tasks with 5 lessons each; a task completes (and awards 10 XP) after its 5 lessons are answered correctly. Legacy 5-task saves are migrated to the 10-task layout.

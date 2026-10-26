@@ -39,8 +39,20 @@ describe('lesson exercises', () => {
     const exercise = createExercise(2, 0, () => 0)
     expect(exercise.type).toBe('build-word')
     expect(exercise.word).toBe(getBasqueNumber(exercise.number))
+    expect(exercise.blocks.length).toBeGreaterThan(exercise.word.split(/\s+/).length)
+    expect(new Set(exercise.blocks.map((block) => block.id)).size).toBe(exercise.blocks.length)
     expect(checkExercise(exercise, exercise.word)).toBe(true)
     expect(checkExercise(exercise, 'oker')).toBe(false)
+  })
+
+  it('offers several word blocks even when the answer is a single word', () => {
+    const exercise = createExercise(0, 0, () => 0)
+
+    expect(exercise.number).toBe(1)
+    expect(exercise.blocks.map((block) => block.text)).toEqual(
+      expect.arrayContaining(['BAT', 'BI', 'HIRU', 'LAU', 'BOST']),
+    )
+    expect(exercise.blocks).toHaveLength(5)
   })
 
   it('creates number-choice exercises with one correct option', () => {
@@ -66,6 +78,9 @@ describe('lesson exercises', () => {
   it('alternates task types in placement and chooses the first uncompleted unit', () => {
     expect(UNITS).toHaveLength(5)
     expect(createPlacementExercise(0, () => 0).type).toBe('choose-number')
+    const wordPlacement = createPlacementExercise(1, () => 0)
+    expect(wordPlacement.type).toBe('build-word')
+    expect(wordPlacement.blocks.length).toBeGreaterThan(wordPlacement.word.split(/\s+/).length)
     expect(getPlacementStartUnit(0)).toBe(0)
     expect(getPlacementStartUnit(UNITS.length)).toBe(UNITS.length - 1)
     expect(getCurrentUnit([0, 1])).toBe(2)
@@ -75,7 +90,7 @@ describe('lesson exercises', () => {
   it('unlocks one unit task at a time', () => {
     expect(getNextTaskIndex([])).toBe(0)
     expect(getNextTaskIndex([0, 1, 2])).toBe(3)
-    expect(getNextTaskIndex([0, 1, 2, 3, 4])).toBe(-1)
+    expect(getNextTaskIndex([0, 1, 2, 3, 4, 5, 6, 7, 8, 9])).toBe(-1)
   })
 
   it('completes a unit in order and awards XP only once per task', () => {
@@ -85,22 +100,22 @@ describe('lesson exercises', () => {
       xp: 0,
     }
 
-    for (let taskIndex = 0; taskIndex < 4; taskIndex += 1) {
+    for (let taskIndex = 0; taskIndex < 9; taskIndex += 1) {
       const completion = completeTask(progress, 0, taskIndex)
       expect(completion.unitComplete).toBe(false)
       expect(completion.xpEarned).toBe(10)
       progress = completion.progress
     }
 
-    const finalCompletion = completeTask(progress, 0, 4)
+    const finalCompletion = completeTask(progress, 0, 9)
     expect(finalCompletion.unitComplete).toBe(true)
     expect(finalCompletion.progress.completedUnitIndexes).toEqual([0])
-    expect(finalCompletion.progress.xp).toBe(50)
+    expect(finalCompletion.progress.xp).toBe(100)
     expect(getCurrentUnit(finalCompletion.progress.completedUnitIndexes)).toBe(1)
 
     const replay = completeTask(finalCompletion.progress, 0, 2)
     expect(replay.xpEarned).toBe(0)
-    expect(replay.progress.xp).toBe(50)
+    expect(replay.progress.xp).toBe(100)
   })
 
   it('rejects skipping a locked task', () => {

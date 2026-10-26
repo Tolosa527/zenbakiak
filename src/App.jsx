@@ -7,12 +7,76 @@ import {
   getCurrentUnit,
   getNextTaskIndex,
   getPlacementStartUnit,
-  LESSON_LENGTH,
+  LESSONS_PER_TASK,
+  TASKS_PER_UNIT,
   UNITS,
 } from './game/logic.js'
-import { DEFAULT_PROGRESS, loadProgress, saveProgress } from './game/storage.js'
+import { DEFAULT_PROGRESS, loadPlayerSession, savePlayerProgress } from './game/storage.js'
 
-function Header({ progress, onGoHome }) {
+function PlayerIdentity({ lastUser, onSelect }) {
+  const [mode, setMode] = useState(lastUser ? 'confirm' : 'name')
+  const [name, setName] = useState('')
+
+  function submit(event) {
+    event.preventDefault()
+    const trimmedName = name.trim()
+    if (trimmedName) {
+      onSelect(trimmedName)
+    }
+  }
+
+  return (
+    <div className="identity-overlay">
+      <section className="identity-card panel" role="dialog" aria-modal="true" aria-labelledby="identity-title">
+        <p className="eyebrow">ZENBAKIAK</p>
+        {mode === 'confirm' ? (
+          <>
+            <h1 id="identity-title">{lastUser} zara?</h1>
+            <p className="identity-copy">Nabigatzaile honetan gordetako zure aurrerapena berreskuratuko dugu.</p>
+            <div className="identity-actions">
+              <button className="button button-primary" type="button" onClick={() => onSelect(lastUser)}>
+                Bai, ni naiz
+              </button>
+              <button className="button button-secondary" type="button" onClick={() => setMode('name')}>
+                Ez, beste norbait naiz
+              </button>
+            </div>
+          </>
+        ) : (
+          <form onSubmit={submit}>
+            <h1 id="identity-title">{lastUser ? 'Nor ari da jolasten?' : 'Nola duzu izena?'}</h1>
+            <p className="identity-copy">
+              {lastUser
+                ? 'Idatzi zure izena aurrerapena berreskuratzeko edo berri bat hasteko.'
+                : 'Zure aurrerapena gordeko dugu, hurrengoan jarraitu ahal izan dezazun.'}
+            </p>
+            <label className="identity-label" htmlFor="player-name">Izena</label>
+            <input
+              id="player-name"
+              className="identity-input"
+              type="text"
+              value={name}
+              onChange={(event) => setName(event.target.value)}
+              autoFocus
+              maxLength={40}
+              required
+            />
+            <div className="identity-actions">
+              <button className="button button-primary" type="submit">Hasi</button>
+              {lastUser && (
+                <button className="text-button" type="button" onClick={() => setMode('confirm')}>
+                  Itzuli
+                </button>
+              )}
+            </div>
+          </form>
+        )}
+      </section>
+    </div>
+  )
+}
+
+function Header({ playerName, progress, onGoHome }) {
   return (
     <header className="app-header">
       <button className="brand" type="button" onClick={onGoHome} aria-label="Hasierara joan">
@@ -20,6 +84,7 @@ function Header({ progress, onGoHome }) {
         <span>ZENBAKIAK</span>
       </button>
       <div className="header-stats" aria-label="Ikaskuntza-aurrerapena">
+        {playerName && <span className="header-player">Kaixo, {playerName}!</span>}
         <span className="stat-pill">
           <span aria-hidden="true">✦</span> {progress.xp} XP
         </span>
@@ -36,16 +101,23 @@ function CharacterPlaceholder() {
   )
 }
 
-function HomeScreen({ progress, onStartAssessment, onGoToPath }) {
+function HomeScreen({ playerName, progress, onStartAssessment, onGoToPath }) {
   const currentUnitIndex = getCurrentUnit(progress.completedUnitIndexes)
   const hasProgress = progress.xp > 0 || progress.completedTaskIndexesByUnit.some((tasks) => tasks.length > 0)
+  const hasPlayerName = Boolean(playerName)
 
   return (
     <main className="page-shell home-screen">
       <section className="hero panel">
         <div className="hero-copy">
-          <p className="eyebrow">EUSKARAZ IKASI, JOLASTUZ</p>
-          <h1>Zenbakiak ikasi Euskal Herrian barrena!</h1>
+          <p className="eyebrow">
+            {hasPlayerName ? `KAIXO, ${playerName.toLocaleUpperCase('eu')}!` : 'EUSKARAZ IKASI, JOLASTUZ'}
+          </p>
+          <h1>
+            {hasPlayerName
+              ? `${playerName}, zenbakiak ikasi Euskal Herrian barrena!`
+              : 'Zenbakiak ikasi Euskal Herrian barrena!'}
+          </h1>
           <p className="hero-description">
             Egin aurrera paisaiaz paisaia, eta ezagutu euskarazko zenbakiak urratsez urrats.
           </p>
@@ -106,7 +178,7 @@ function ProgressBar({ current, total, label }) {
   )
 }
 
-function ExerciseCard({ exercise, onComplete, retryOnWrong = true, step, total }) {
+function ExerciseCard({ playerName, exercise, onComplete, retryOnWrong = true, step, total, showWaitingCharacter = false }) {
   const [selectedBlocks, setSelectedBlocks] = useState([])
   const [selectedNumber, setSelectedNumber] = useState(null)
   const [feedback, setFeedback] = useState(null)
@@ -123,6 +195,16 @@ function ExerciseCard({ exercise, onComplete, retryOnWrong = true, step, total }
     ? exercise.blocks.filter((block) => !selectedBlocks.some((selected) => selected.id === block.id))
     : []
   const hasAnswer = isBuildTask ? selectedBlocks.length === targetBlockCount : selectedNumber !== null
+  const characterImage = feedback === true
+    ? '/img/smiling.png'
+    : feedback === false
+      ? '/img/sorprise.png'
+      : '/img/character_wating.gif'
+  const characterAlt = feedback === true
+    ? 'Pertsonaia pozik zure erantzunarekin'
+    : feedback === false
+      ? 'Pertsonaia harrituta dago erantzunarekin'
+      : 'Pertsonaia zure erantzunaren zain'
 
   function submitAnswer() {
     const answer = isBuildTask
@@ -142,17 +224,22 @@ function ExerciseCard({ exercise, onComplete, retryOnWrong = true, step, total }
   }
 
   return (
-    <section className="exercise-card panel" aria-labelledby="exercise-title">
+    <div className={`exercise-card-frame ${showWaitingCharacter ? 'has-waiting-character' : ''}`}>
+      <section className="exercise-card panel" aria-labelledby="exercise-title">
       <div className="exercise-topline">
         <span className="eyebrow">{step ? `IKASGAIA · ${step}/${total}` : 'MAILA-PROBA'}</span>
         {step && <span className="exercise-count">{step} / {total}</span>}
       </div>
       <ProgressBar current={step ? step - 1 : 0} total={total} label="Ikasgaiaren aurrerapena" />
       <h1 id="exercise-title">
-        {isBuildTask ? 'Osatu hitza zenbakiarekin' : 'Aurkitu zenbakia hitzetik abiatuta'}
+        {isBuildTask
+          ? `${playerName}, osatu hitza zenbakiarekin`
+          : `${playerName}, aurkitu zenbakia hitzetik abiatuta`}
       </h1>
       <p className="exercise-instruction">
-        {isBuildTask ? 'Sakatu blokeak hitza osatzeko.' : 'Zein zenbaki da hitz honen esanahia?'}
+        {isBuildTask
+          ? `${playerName}, sakatu blokeak hitza osatzeko.`
+          : `${playerName}, zein zenbaki da hitz honen esanahia?`}
       </p>
 
       <div className="question-prompt">
@@ -213,10 +300,12 @@ function ExerciseCard({ exercise, onComplete, retryOnWrong = true, step, total }
       )}
 
       <div className="exercise-feedback" aria-live="polite">
-        {feedback === true && <p className="feedback-correct">Oso ondo! Erantzun zuzena da. ✨</p>}
+        {feedback === true && <p className="feedback-correct">Oso ondo, {playerName}! Erantzun zuzena da. ✨</p>}
         {feedback === false && (
           <p className="feedback-wrong">
-            {retryOnWrong ? 'Ia-ia! Begiratu blokeak eta saiatu berriro.' : `Erantzun zuzena: ${exercise.number}.`}
+            {retryOnWrong
+              ? `${playerName}, ia-ia! Begiratu blokeak eta saiatu berriro.`
+              : `${playerName}, erantzun zuzena: ${exercise.number}.`}
           </p>
         )}
       </div>
@@ -236,11 +325,19 @@ function ExerciseCard({ exercise, onComplete, retryOnWrong = true, step, total }
           </button>
         )}
       </div>
-    </section>
+      </section>
+      {showWaitingCharacter && (
+        <img
+          className="exercise-waiting-character"
+          src={characterImage}
+          alt={characterAlt}
+        />
+      )}
+    </div>
   )
 }
 
-function PathScreen({ progress, onStartLesson }) {
+function PathScreen({ playerName, progress, onStartLesson }) {
   const currentUnitIndex = getCurrentUnit(progress.completedUnitIndexes)
   const allComplete = currentUnitIndex === -1
 
@@ -249,8 +346,8 @@ function PathScreen({ progress, onStartLesson }) {
       <div className="section-heading">
         <div>
           <p className="eyebrow">ZURE IKASKUNTZA-BIDEA</p>
-          <h1>Paisaiaz paisaia, zenbakiz zenbaki</h1>
-          <p className="muted-copy">Osatu UNIT bakoitzeko urratsak eta desblokeatu hurrengo geltokia.</p>
+          <h1>{playerName}, paisaiaz paisaia, zenbakiz zenbaki</h1>
+          <p className="muted-copy">{playerName}, osatu UNIT bakoitzeko urratsak eta desblokeatu hurrengo geltokia.</p>
         </div>
       </div>
 
@@ -286,9 +383,9 @@ function PathScreen({ progress, onStartLesson }) {
                       {unitComplete ? 'OSATUTA' : locked ? 'ITXITA' : 'ZURE TXANDA'}
                     </span>
                   </div>
-                  <p className="muted-copy">{unit.description} · {completedTasks.length}/{LESSON_LENGTH} urrats</p>
+                  <p className="muted-copy">{unit.description} · {completedTasks.length}/{TASKS_PER_UNIT} urrats</p>
                   <div className="unit-task-path" role="group" aria-label={`${unit.title} UNITeko jarduera-bidea`}>
-                    {Array.from({ length: LESSON_LENGTH }, (_, taskIndex) => {
+                    {Array.from({ length: TASKS_PER_UNIT }, (_, taskIndex) => {
                       const taskComplete = completedTasks.includes(taskIndex)
                       const taskActive = !locked && !unitComplete && taskIndex === nextTaskIndex
                       const taskLocked = locked || (!unitComplete && taskIndex > nextTaskIndex)
@@ -304,7 +401,7 @@ function PathScreen({ progress, onStartLesson }) {
                           >
                             {taskComplete ? '✓' : taskIndex + 1}
                           </button>
-                          {taskActive && <img className="task-node-sheep" src="/img/front.png" alt="" aria-hidden="true" />}
+                          {taskActive && <img className="task-node-sheep" src="/img/main_character.gif" alt="" aria-hidden="true" />}
                         </div>
                       )
                     })}
@@ -319,16 +416,16 @@ function PathScreen({ progress, onStartLesson }) {
   )
 }
 
-function PlacementResult({ startUnit, correctAnswers, onChoose, onBack }) {
+function PlacementResult({ playerName, startUnit, correctAnswers, onChoose, onBack }) {
   const unit = UNITS[startUnit]
   return (
     <main className="page-shell centered-screen">
       <section className="result-card panel">
-        <div className="result-icon"><img src="/img/front.png" alt="" /></div>
+        <div className="result-icon"><img src="/img/main_character.gif" alt="" /></div>
         <p className="eyebrow">MAILA-PROBA AMAITUTA</p>
-        <h1>{correctAnswers} / {UNITS.length} erantzun zuzen</h1>
+        <h1>{playerName}, {correctAnswers} / {UNITS.length} erantzun zuzen</h1>
         <p className="result-copy">
-          Zure abiapuntu gomendatua <strong>{unit.title}</strong> da ({unit.description}).
+          {playerName}, zure abiapuntu gomendatua <strong>{unit.title}</strong> da ({unit.description}).
           Nahi baduzu, aurreko urratsak ere egin ditzakezu.
         </p>
         <div className="result-actions">
@@ -345,15 +442,19 @@ function PlacementResult({ startUnit, correctAnswers, onChoose, onBack }) {
   )
 }
 
-function TaskComplete({ unit, taskIndex, unitComplete, allUnitsComplete, xpEarned, onContinue }) {
+function TaskComplete({ playerName, unit, taskIndex, unitComplete, allUnitsComplete, xpEarned, onContinue }) {
   return (
     <main className="page-shell centered-screen">
       <section className="result-card panel">
-        <div className="result-icon"><img src="/img/front.png" alt="" /></div>
+        <div className="result-icon"><img src="/img/main_character.gif" alt="" /></div>
         <p className="eyebrow">{allUnitsComplete ? 'BIDEA OSATUTA' : unitComplete ? 'UNITA OSATUTA' : 'URRATSA OSATUTA'}</p>
-        <h1>{unitComplete ? `Primeran, ${unit.title} amaitu duzu!` : `${taskIndex + 1}. urratsa osatuta!`}</h1>
+        <h1>
+          {unitComplete
+            ? `Primeran, ${playerName}! ${unit.title} amaitu duzu!`
+            : `${playerName}, ${taskIndex + 1}. urratsa osatuta!`}
+        </h1>
         <p className="result-copy">
-          {xpEarned > 0 && `+${xpEarned} XP. `}
+          {xpEarned > 0 && `${playerName}, +${xpEarned} XP. `}
           {allUnitsComplete
             ? 'Zenbaki-bide osoa osatu duzu!'
             : unitComplete
@@ -369,8 +470,10 @@ function TaskComplete({ unit, taskIndex, unitComplete, allUnitsComplete, xpEarne
 }
 
 export default function App() {
-  const [initialStorage] = useState(loadProgress)
-  const [progress, setProgress] = useState(() => initialStorage.progress || DEFAULT_PROGRESS)
+  const [initialStorage] = useState(loadPlayerSession)
+  const [activePlayer, setActivePlayer] = useState(null)
+  const [identityReady, setIdentityReady] = useState(false)
+  const [progress, setProgress] = useState(() => initialStorage.currentProgress || initialStorage.legacyProgress || DEFAULT_PROGRESS)
   const [storageError, setStorageError] = useState(initialStorage.error)
   const [screen, setScreen] = useState('home')
   const [placementIndex, setPlacementIndex] = useState(0)
@@ -378,13 +481,32 @@ export default function App() {
   const [placementExercise, setPlacementExercise] = useState(null)
   const [placementStartUnit, setPlacementStartUnit] = useState(0)
   const [lessonUnitIndex, setLessonUnitIndex] = useState(0)
+  const [lessonTaskIndex, setLessonTaskIndex] = useState(0)
   const [lessonStep, setLessonStep] = useState(0)
   const [lessonExercise, setLessonExercise] = useState(null)
   const [taskCompletion, setTaskCompletion] = useState(null)
 
   useEffect(() => {
-    setStorageError(saveProgress(progress))
-  }, [progress])
+    if (identityReady && activePlayer) {
+      setStorageError(savePlayerProgress(activePlayer, progress))
+    }
+  }, [activePlayer, identityReady, progress])
+
+  function selectPlayer(name) {
+    const normalizedName = name.trim().replace(/\s+/g, ' ')
+    const existingPlayer = initialStorage.players.find((player) =>
+      player.name.toLocaleLowerCase('eu') === normalizedName.toLocaleLowerCase('eu'))
+    const nextProgress = existingPlayer
+      ? existingPlayer.progress
+      : initialStorage.players.length === 0 && initialStorage.hasLegacyProgress
+        ? initialStorage.legacyProgress
+        : DEFAULT_PROGRESS
+
+    setActivePlayer(normalizedName)
+    setProgress(nextProgress)
+    setIdentityReady(true)
+    setStorageError(savePlayerProgress(normalizedName, nextProgress))
+  }
 
   function beginPlacement() {
     setPlacementIndex(0)
@@ -421,15 +543,16 @@ export default function App() {
       ...current,
       completedUnitIndexes: [...new Set([...current.completedUnitIndexes, ...knownUnits])].sort((a, b) => a - b),
       completedTaskIndexesByUnit: current.completedTaskIndexesByUnit.map((tasks, index) =>
-        knownUnits.includes(index) ? Array.from({ length: LESSON_LENGTH }, (_, taskIndex) => taskIndex) : tasks),
+        knownUnits.includes(index) ? Array.from({ length: TASKS_PER_UNIT }, (_, taskIndex) => taskIndex) : tasks),
     }))
     setScreen('path')
   }
 
   function startLesson(unitIndex, taskIndex) {
     setLessonUnitIndex(unitIndex)
-    setLessonStep(taskIndex)
-    setLessonExercise(createExercise(unitIndex, taskIndex))
+    setLessonTaskIndex(taskIndex)
+    setLessonStep(0)
+    setLessonExercise(createExercise(unitIndex, 0))
     setScreen('lesson')
   }
 
@@ -438,10 +561,17 @@ export default function App() {
       return
     }
 
-    const completion = completeTask(progress, lessonUnitIndex, lessonStep)
+    if (lessonStep + 1 < LESSONS_PER_TASK) {
+      const nextStep = lessonStep + 1
+      setLessonStep(nextStep)
+      setLessonExercise(createExercise(lessonUnitIndex, nextStep))
+      return
+    }
+
+    const completion = completeTask(progress, lessonUnitIndex, lessonTaskIndex)
     setProgress(completion.progress)
     setTaskCompletion({
-      taskIndex: lessonStep,
+      taskIndex: lessonTaskIndex,
       unitComplete: completion.unitComplete,
       allUnitsComplete: completion.unitComplete && lessonUnitIndex === UNITS.length - 1,
       xpEarned: completion.xpEarned,
@@ -451,12 +581,14 @@ export default function App() {
 
   return (
     <>
-      <Header progress={progress} onGoHome={() => setScreen('home')} />
+      <Header playerName={activePlayer || ''} progress={progress} onGoHome={() => setScreen('home')} />
       {storageError && (
         <p className="storage-warning" role="status">{storageError}</p>
       )}
+      {!identityReady && <PlayerIdentity lastUser={initialStorage.lastUser} onSelect={selectPlayer} />}
       {screen === 'home' && (
         <HomeScreen
+          playerName={activePlayer}
           progress={progress}
           onStartAssessment={beginPlacement}
           onGoToPath={() => setScreen('path')}
@@ -466,6 +598,7 @@ export default function App() {
         <main className="page-shell centered-screen">
           <button className="back-button" type="button" onClick={() => setScreen('home')}>← Hasierara itzuli</button>
           <ExerciseCard
+            playerName={activePlayer}
             exercise={placementExercise}
             onComplete={answerPlacement}
             retryOnWrong={false}
@@ -476,27 +609,33 @@ export default function App() {
       )}
       {screen === 'placement-result' && (
         <PlacementResult
+          playerName={activePlayer}
           startUnit={placementStartUnit}
           correctAnswers={placementCorrect}
           onChoose={chooseStartingPoint}
           onBack={() => setScreen('home')}
         />
       )}
-      {screen === 'path' && <PathScreen progress={progress} onStartLesson={startLesson} />}
+      {screen === 'path' && (
+        <PathScreen playerName={activePlayer} progress={progress} onStartLesson={startLesson} />
+      )}
       {screen === 'lesson' && lessonExercise && (
         <main className={`page-shell centered-screen lesson-screen scene-${UNITS[lessonUnitIndex].scene}`}>
           <button className="back-button" type="button" onClick={() => setScreen('path')}>← Bidera itzuli</button>
           <ExerciseCard
+            playerName={activePlayer}
             exercise={lessonExercise}
             onComplete={answerLesson}
             retryOnWrong
             step={lessonStep + 1}
-            total={LESSON_LENGTH}
+            total={LESSONS_PER_TASK}
+            showWaitingCharacter
           />
         </main>
       )}
       {screen === 'task-complete' && taskCompletion && (
         <TaskComplete
+          playerName={activePlayer}
           unit={UNITS[lessonUnitIndex]}
           {...taskCompletion}
           onContinue={() => setScreen('path')}

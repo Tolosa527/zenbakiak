@@ -5,8 +5,8 @@
 - **Product:** Zenbakiak, an Euskara-first numbers-learning game for children.
 - **Delivery scope:** React + Vite frontend MVP; no accounts or backend.
 - **Learning content:** Cardinal numbers 1–9999 sourced from `docs/zenbakiak.md`.
-- **Progress:** Assessment-based starting point and per-task progress stored in browser local storage; completed task nodes unlock sequentially within each UNIT.
-- **Visual assets:** Sheep character (`public/img/front.png`) shown on the home hero, result screens, and active UNIT task node; each UNIT has its own illustrated landscape and coordinated color theme.
+- **Progress:** Assessment-based starting point and per-task progress stored in browser local storage; each UNIT has 10 task nodes (5 lessons each) that unlock sequentially; a task completes after all 5 lessons.
+- **Visual assets:** Sheep character (`public/img/main_character.gif`) shown on the home hero, result screens, and active UNIT task node; each UNIT has its own illustrated landscape and coordinated color theme.
 - **Visual style:** Stronger Ikurriña-inspired red and green accents on bright, soft backgrounds.
 - **Dependencies:** Vite 8, Vitest 5, and React plugin 6; `npm audit` reports zero vulnerabilities.
 
